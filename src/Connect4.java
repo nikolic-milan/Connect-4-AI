@@ -34,7 +34,8 @@ class Connect4JFrame extends JFrame implements ActionListener {
         private Label           lblSpacer;
         private JLabel 			yellowLabel, redLabel, bothPlayerLabel;
         private Panel 			movesPanel;
-        MenuItem                newMI, exitMI, redMI, yellowMI, yellowHuman, yellowRandom, redHuman, redRandom;
+        MenuItem                newMI, exitMI, redMI, yellowMI, yellowHuman,
+        						yellowRandom, yellowMinMax, redHuman, redRandom, redMinMax;
         int[][]                 theArray;
         boolean                 end=false;
         boolean                 gameStart;
@@ -49,6 +50,7 @@ class Connect4JFrame extends JFrame implements ActionListener {
         	
         public static final int HUMAN = 0;
         public static final int RANDOM = 1;
+        public static final int MINMAX = 2;
         
         int yellowPlayer = HUMAN;
         int redPlayer = HUMAN;
@@ -89,6 +91,9 @@ class Connect4JFrame extends JFrame implements ActionListener {
             yellowRandom = new MenuItem("Yellow as Random Agent");
             yellowRandom.addActionListener(this);
             yellowPlayerMenu.add(yellowRandom);
+            yellowMinMax = new MenuItem("Yellow as MinMax Agent");
+            yellowMinMax.addActionListener(this);
+            yellowPlayerMenu.add(yellowMinMax);
             mbar.add(yellowPlayerMenu);
             // Red Player Menu
             Menu redPlayerMenu = new Menu ("Red Player");
@@ -98,6 +103,9 @@ class Connect4JFrame extends JFrame implements ActionListener {
             redRandom = new MenuItem("Red as Random Agent");
             redRandom.addActionListener(this);
             redPlayerMenu.add(redRandom);
+            redMinMax = new MenuItem("Red as MinMax Agent");
+            redMinMax.addActionListener(this);
+            redPlayerMenu.add(redMinMax);
             mbar.add(redPlayerMenu);
             setMenuBar(mbar);
             
@@ -309,10 +317,14 @@ class Connect4JFrame extends JFrame implements ActionListener {
         		if (!gameStart) yellowPlayer=HUMAN;
             } else if (e.getSource() == yellowRandom) {
         		if (!gameStart) yellowPlayer=RANDOM;
+            } else if (e.getSource() == yellowMinMax) {
+            	if (!gameStart) yellowPlayer=MINMAX;
             } else if (e.getSource() == redHuman) {
         		if (!gameStart) redPlayer=HUMAN;
             } else if (e.getSource() == redRandom) {
         		if (!gameStart) redPlayer=RANDOM;
+            } else if (e.getSource() == redMinMax) {
+            	if (!gameStart) redPlayer=MINMAX;
             }
         } // end ActionPerformed
         
@@ -326,6 +338,10 @@ class Connect4JFrame extends JFrame implements ActionListener {
         	agentPlay();
         }
         
+        public void minMaxAgent() {
+        	MinMaxPlayer minMaxPlayer = new MinMaxPlayer();
+        	minMaxPlayer.firstMove(theArray, activeColour);
+        }
         /**
          * This method is called when a playing button is called.
          * It "puts" the disk in the right place and calls
@@ -361,11 +377,17 @@ class Connect4JFrame extends JFrame implements ActionListener {
         			case RANDOM:
         				randomAgent();
         				break;
+        			case MINMAX:
+        				minMaxAgent();
+        				break;
         		}
         	} else {
         		switch(redPlayer) {
     			case RANDOM:
     				randomAgent();
+    				break;
+    			case MINMAX:
+    				minMaxAgent();
     				break;
         		}
         	}
