@@ -1,5 +1,7 @@
 import java.awt.*;
 import java.awt.event.*;
+import java.util.concurrent.TimeUnit;
+
 import javax.swing.*;
 
 public class Connect4 {
@@ -173,6 +175,15 @@ class Connect4JFrame extends JFrame implements ActionListener {
                 for (int col=0; col<MAXCOL; col++)
                     theArray[row][col]=BLANK;
             gameStart=false;
+         // show counters
+            redMoveCounter = 0;
+            redLabel.setText(redPlaceHolder + redMoveCounter);
+        	movesPanel.add(redLabel);
+        	yellowMoveCounter = 0;
+            yellowLabel.setText(yellowPlaceHolder + yellowMoveCounter);
+        	movesPanel.add(yellowLabel);
+        	bothPlayerLabel.setText(bothPlayerHolder + (yellowMoveCounter + redMoveCounter));
+        	movesPanel.add(bothPlayerLabel);
         } // initialize
  
         public void paint(Graphics g) {
@@ -241,50 +252,10 @@ class Connect4JFrame extends JFrame implements ActionListener {
         public void check4(Graphics g) {
         // see if there are 4 disks in a row: horizontal, vertical or diagonal
             // horizontal rows
-            for (int row=0; row<MAXROW; row++) {
-                for (int col=0; col<MAXCOL-3; col++) {
-                    int curr = theArray[row][col];
-                    if (curr>0
-                     && curr == theArray[row][col+1]
-                     && curr == theArray[row][col+2]
-                     && curr == theArray[row][col+3]) {
-                    	displayWinner(g, theArray[row][col]);
-                    }
-                }
-            }
-            // vertical columns
-            for (int col=0; col<MAXCOL; col++) {
-                for (int row=0; row<MAXROW-3; row++) {
-                    int curr = theArray[row][col];
-                    if (curr>0
-                     && curr == theArray[row+1][col]
-                     && curr == theArray[row+2][col]
-                     && curr == theArray[row+3][col])
-                        displayWinner(g, theArray[row][col]);
-                }
-            }
-            // diagonal lower left to upper right
-            for (int row=0; row<MAXROW-3; row++) {
-                for (int col=0; col<MAXCOL-3; col++) {
-                    int curr = theArray[row][col];
-                    if (curr>0
-                     && curr == theArray[row+1][col+1]
-                     && curr == theArray[row+2][col+2]
-                     && curr == theArray[row+3][col+3])
-                    	displayWinner(g, theArray[row][col]);
-                }
-            }
-            // diagonal upper left to lower right
-            for (int row=MAXROW-1; row>=3; row--) {
-        		for (int col=0; col<MAXCOL-3; col++) {
-        				int curr = theArray[row][col];
-                        if (curr>0
-                         && curr == theArray[row-1][col+1]
-                         && curr == theArray[row-2][col+2]
-                         && curr == theArray[row-3][col+3])
-                        	displayWinner(g, theArray[row][col]);
-                }
-            }
+        	int winner = Helper.checkWin(theArray);
+        	if (winner != 0) {
+        		displayWinner(g, winner);
+        	}
         } // end check4
  
         public void actionPerformed(ActionEvent e) {
@@ -335,12 +306,22 @@ class Connect4JFrame extends JFrame implements ActionListener {
         	RandomPlayer randomPlayer = new RandomPlayer();
         	int nextMove = randomPlayer.nextMove();
         	putDisk(nextMove);
-        	agentPlay();
+        	if(redPlayer != HUMAN && yellowPlayer != HUMAN)
+        		agentPlay();
         }
         
+        /**
+         * This method is used to make a move as a MinMax Agent
+         */
         public void minMaxAgent() {
+        	Long startTime = System.currentTimeMillis();
         	MinMaxPlayer minMaxPlayer = new MinMaxPlayer();
-        	minMaxPlayer.firstMove(theArray, activeColour);
+        	int nextMoveEval = minMaxPlayer.nextMoveEval(theArray, activeColour);
+        	putDisk(nextMoveEval);
+        	Long endTime = System.currentTimeMillis();
+        	System.out.println("Time needed to construct tree: " + (endTime-startTime));
+        	if(redPlayer != HUMAN && yellowPlayer != HUMAN)
+        		agentPlay();
         }
         /**
          * This method is called when a playing button is called.
