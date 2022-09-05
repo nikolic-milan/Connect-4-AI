@@ -34,10 +34,12 @@ class Connect4JFrame extends JFrame implements ActionListener {
  
         private Button          btn1, btn2, btn3, btn4, btn5, btn6, btn7;
         private Label           lblSpacer;
-        private JLabel 			yellowLabel, redLabel, bothPlayerLabel;
+        private JLabel 			yellowLabel, redLabel, bothPlayerLabel, moveTimeLabel;
         private Panel 			movesPanel;
         MenuItem                newMI, exitMI, redMI, yellowMI, yellowHuman,
-        						yellowRandom, yellowMinMax, redHuman, redRandom, redMinMax;
+        						yellowRandom, yellowMinMax, yellowMinMaxAB,
+        						redHuman, redRandom, redMinMax, redMinMaxAB,
+        						randomVMinMax, randomVMinMaxAB, minMaxVMinMaxAB;
         int[][]                 theArray;
         boolean                 end=false;
         boolean                 gameStart;
@@ -53,6 +55,7 @@ class Connect4JFrame extends JFrame implements ActionListener {
         public static final int HUMAN = 0;
         public static final int RANDOM = 1;
         public static final int MINMAX = 2;
+        public static final int MINMAXAB = 3;
         
         int yellowPlayer = HUMAN;
         int redPlayer = HUMAN;
@@ -63,8 +66,11 @@ class Connect4JFrame extends JFrame implements ActionListener {
         public static String yellowPlaceHolder = "Yellow Moves Counter: ";
         public static String redPlaceHolder = "Red Moves Counter: ";
         public static String bothPlayerHolder = "Total Number of Moves: ";
+        public static String moveTimePlaceHolder = "Time needed to play move: ";
         int yellowMoveCounter = 0;
         int redMoveCounter = 0;
+        int moveTime = 0;
+        int winner = 0;
         
         public Connect4JFrame() {
             setTitle("Connect4 by Chris Clarke");
@@ -96,6 +102,9 @@ class Connect4JFrame extends JFrame implements ActionListener {
             yellowMinMax = new MenuItem("Yellow as MinMax Agent");
             yellowMinMax.addActionListener(this);
             yellowPlayerMenu.add(yellowMinMax);
+            yellowMinMaxAB = new MenuItem("Yellow as MinMax AB Agent");
+            yellowMinMaxAB.addActionListener(this);
+            yellowPlayerMenu.add(yellowMinMaxAB);
             mbar.add(yellowPlayerMenu);
             // Red Player Menu
             Menu redPlayerMenu = new Menu ("Red Player");
@@ -108,7 +117,22 @@ class Connect4JFrame extends JFrame implements ActionListener {
             redMinMax = new MenuItem("Red as MinMax Agent");
             redMinMax.addActionListener(this);
             redPlayerMenu.add(redMinMax);
+            redMinMaxAB = new MenuItem("Red as MinMax AB Agent");
+            redMinMaxAB.addActionListener(this);
+            redPlayerMenu.add(redMinMaxAB);
             mbar.add(redPlayerMenu);
+            // Simulations menu
+            Menu simulationsMenu = new Menu ("Simulations");
+            randomVMinMax = new MenuItem("Random vs MinMax");
+            randomVMinMax.addActionListener(this);
+            simulationsMenu.add(randomVMinMax);
+            randomVMinMaxAB = new MenuItem("Random vs MinMax AB");
+            randomVMinMaxAB.addActionListener(this);
+            simulationsMenu.add(randomVMinMaxAB);
+            minMaxVMinMaxAB = new MenuItem("MinMax v MinMax AB");
+            minMaxVMinMaxAB.addActionListener(this);
+            simulationsMenu.add(minMaxVMinMaxAB);
+            mbar.add(simulationsMenu);
             setMenuBar(mbar);
             
             // Build Moves counter
@@ -117,6 +141,7 @@ class Connect4JFrame extends JFrame implements ActionListener {
             yellowLabel = new JLabel(yellowPlaceHolder + yellowMoveCounter);
             redLabel = new JLabel(redPlaceHolder + redMoveCounter);;
             bothPlayerLabel = new JLabel(bothPlayerHolder + (yellowMoveCounter + redMoveCounter));
+            moveTimeLabel = new JLabel(moveTimePlaceHolder);
            //movesPanel.add(bothPlayerLabel);                
                 add(movesPanel, BorderLayout.SOUTH);
  
@@ -184,6 +209,8 @@ class Connect4JFrame extends JFrame implements ActionListener {
         	movesPanel.add(yellowLabel);
         	bothPlayerLabel.setText(bothPlayerHolder + (yellowMoveCounter + redMoveCounter));
         	movesPanel.add(bothPlayerLabel);
+        	moveTimeLabel.setText(moveTimePlaceHolder + moveTime + " seconds");
+        	movesPanel.add(moveTimeLabel);
         } // initialize
  
         public void paint(Graphics g) {
@@ -210,11 +237,12 @@ class Connect4JFrame extends JFrame implements ActionListener {
             yellowLabel.setText(yellowPlaceHolder + yellowMoveCounter);
         	movesPanel.add(yellowLabel);
         	bothPlayerLabel.setText(bothPlayerHolder + (yellowMoveCounter + redMoveCounter));
-        	movesPanel.add(bothPlayerLabel);
+        	moveTimeLabel.setText(moveTimePlaceHolder + moveTime + " seconds");
+        	movesPanel.add(moveTimeLabel);
         	check4(g);
         } // paint
  
-        public void putDisk(int n) {
+        public void putDisk(int n, boolean simulation) {
         // put a disk on top of column n
             // if game is won, do nothing
             if (end) return;
@@ -234,25 +262,31 @@ class Connect4JFrame extends JFrame implements ActionListener {
                 	yellowMoveCounter = yellowMoveCounter + 1;
                 	activeColour=RED;
                 }
-                       
-                repaint();
+                if (simulation)       
+                	winner = Helper.checkWin(theArray);
+                else
+                	repaint();
             }
         }
  
         public void displayWinner(Graphics g, int n) {
             g.setColor(Color.BLACK);
             g.setFont(new Font("Courier", Font.BOLD, 100));
-            if (n==RED)
-                g.drawString("Red wins!", 100, 400);
-            else
+            if (n==RED) {
+            	g.drawString("Red wins!", 100, 400);
+            	System.out.println("Redi wins!");
+            }          
+            else {
                 g.drawString("Yellow wins!", 100, 400);
+                System.out.println("Redi wins!");
+            }
             end=true;
         }
  
         public void check4(Graphics g) {
         // see if there are 4 disks in a row: horizontal, vertical or diagonal
             // horizontal rows
-        	int winner = Helper.checkWin(theArray);
+        	winner = Helper.checkWin(theArray);
         	if (winner != 0) {
         		displayWinner(g, winner);
         	}
@@ -290,38 +324,64 @@ class Connect4JFrame extends JFrame implements ActionListener {
         		if (!gameStart) yellowPlayer=RANDOM;
             } else if (e.getSource() == yellowMinMax) {
             	if (!gameStart) yellowPlayer=MINMAX;
+            } else if (e.getSource() == yellowMinMaxAB) {
+            	if (!gameStart) yellowPlayer=MINMAXAB;
             } else if (e.getSource() == redHuman) {
         		if (!gameStart) redPlayer=HUMAN;
             } else if (e.getSource() == redRandom) {
         		if (!gameStart) redPlayer=RANDOM;
             } else if (e.getSource() == redMinMax) {
             	if (!gameStart) redPlayer=MINMAX;
-            }
+            } else if (e.getSource() == redMinMaxAB) {
+            	if (!gameStart) redPlayer=MINMAXAB;
+            } else if (e.getSource() == randomVMinMax) 
+            	randomVSMinMax();
+            else if (e.getSource() == randomVMinMaxAB) 
+            	randomVSMinMaxAB();
+            else if (e.getSource() == minMaxVMinMaxAB) 
+            	minMaxVSMinMaxAB();
         } // end ActionPerformed
         
         /**
          * This method is used to make a move as a random player.
          */
-        public void randomAgent() {
+        public void randomAgent(boolean simulation) {
         	RandomPlayer randomPlayer = new RandomPlayer();
         	int nextMove = randomPlayer.nextMove();
-        	putDisk(nextMove);
-        	if(redPlayer != HUMAN && yellowPlayer != HUMAN)
-        		agentPlay();
+        	putDisk(nextMove, simulation);
+        	
+        	if(redPlayer != HUMAN && yellowPlayer != HUMAN && Helper.checkWin(theArray) == 0)
+        		agentPlay(simulation);
         }
         
         /**
          * This method is used to make a move as a MinMax Agent
          */
-        public void minMaxAgent() {
+        public void minMaxAgent(boolean simulation) {
         	Long startTime = System.currentTimeMillis();
         	MinMaxPlayer minMaxPlayer = new MinMaxPlayer();
         	int nextMoveEval = minMaxPlayer.nextMoveEval(theArray, activeColour);
-        	putDisk(nextMoveEval);
+        	putDisk(nextMoveEval, simulation);
         	Long endTime = System.currentTimeMillis();
-        	System.out.println("Time needed to construct tree: " + (endTime-startTime));
-        	if(redPlayer != HUMAN && yellowPlayer != HUMAN)
-        		agentPlay();
+        	moveTime = (int) ((endTime-startTime) / 1000);
+        	//System.out.println("Time needed to construct tree: " + moveTime);
+        	if(redPlayer != HUMAN && yellowPlayer != HUMAN && Helper.checkWin(theArray) == 0)
+        		agentPlay(simulation);
+        }
+        
+        /**
+         * This method is used to make a move as a MinMax Alpha-Beta Agent
+         */
+        public void minMaxABAgent(boolean simulation) {
+        	Long startTime = System.currentTimeMillis();
+        	MinMaxPlayer minMaxPlayer = new MinMaxPlayer();
+        	int nextMoveAB = minMaxPlayer.nextMoveAB(theArray, activeColour);
+        	putDisk(nextMoveAB, simulation);
+        	Long endTime = System.currentTimeMillis();
+        	moveTime = (int) ((endTime-startTime) / 1000);
+        	//System.out.println("Time needed to construct tree: " + moveTime);
+        	if(redPlayer != HUMAN && yellowPlayer != HUMAN && Helper.checkWin(theArray) == 0)
+        		agentPlay(simulation);
         }
         /**
          * This method is called when a playing button is called.
@@ -331,8 +391,9 @@ class Connect4JFrame extends JFrame implements ActionListener {
          * 						by a Human player.
          */
         public void onMove(int buttonNumber) {
-        	putDisk(buttonNumber);
-        	agentPlay();
+        	putDisk(buttonNumber, false);
+        	agentPlay(false);
+        	
         }
         
         /**
@@ -344,7 +405,7 @@ class Connect4JFrame extends JFrame implements ActionListener {
          */
         public void checkStart(int colourToSet) {
         	activeColour = colourToSet;
-        	agentPlay();
+        	agentPlay(false);
         }
         
         /**
@@ -352,25 +413,138 @@ class Connect4JFrame extends JFrame implements ActionListener {
          * represents the active player and check if the active
          * player is an agent.
          */
-        public void agentPlay() {
+        public void agentPlay(boolean simulation) {
         	if (activeColour == YELLOW) {
         		switch(yellowPlayer) {
         			case RANDOM:
-        				randomAgent();
+        				randomAgent(simulation);
         				break;
         			case MINMAX:
-        				minMaxAgent();
+        				minMaxAgent(simulation);
         				break;
+        			case MINMAXAB:
+        				minMaxABAgent(simulation);
         		}
         	} else {
         		switch(redPlayer) {
     			case RANDOM:
-    				randomAgent();
+    				randomAgent(simulation);
     				break;
     			case MINMAX:
-    				minMaxAgent();
+    				minMaxAgent(simulation);
     				break;
+    			case MINMAXAB:
+    				minMaxABAgent(simulation);
         		}
         	}
+        }
+        
+        /**
+         * This method simulates 10 games in a row between
+         * Random Agent and MinMax Agent.
+         */
+        public void randomVSMinMax() {
+        	yellowPlayer = RANDOM;
+        	redPlayer = MINMAX;
+        	activeColour = YELLOW;
+        	System.out.println("Yellow Player is Random Agent.");
+        	System.out.println("Red Player is MinMax Agent.");
+        	System.out.println("-------------------------------------------------------");
+        	for(int i = 0; i < 10; i++) {
+        		Long startTime = System.currentTimeMillis();
+        		if(activeColour == RED)
+        			System.out.println("First player this game is red. Begin!");
+        		else
+        			System.out.println("First player this game is yellow. Begin!");
+        		agentPlay(true);
+        		Long endTime = System.currentTimeMillis();
+
+                moveTime = (int) ((endTime-startTime) / 1000);
+                if(winner == RED)
+                	System.out.println("The winner is: Red player");
+                else
+                	System.out.println("The winner is: Yellow player");
+                System.out.println("Game lasted: " + moveTime + " seconds.");
+                System.out.println("Total moves made: " + (redMoveCounter + yellowMoveCounter));
+                activeColour = Math.abs(activeColour-3);
+                System.out.println("-------------------------------------------------------");
+                end=false;
+                initialize();
+        	}
+        	System.out.println("Simulation over.");
+        }
+        
+        /**
+         * This method simulates 10 games in a row between
+         * Random Agent and MinMaxAb Agent.
+         */
+        public void randomVSMinMaxAB() {
+        	yellowPlayer = RANDOM;
+        	redPlayer = MINMAXAB;
+        	activeColour = YELLOW;
+        	System.out.println("Yellow Player is Random Agent.");
+        	System.out.println("Red Player is MinMaxAB Agent.");
+        	System.out.println("-------------------------------------------------------");
+        	for(int i = 0; i < 10; i++) {
+        		Long startTime = System.currentTimeMillis();
+        		if(activeColour == RED)
+        			System.out.println("First player this game is red. Begin!");
+        		else
+        			System.out.println("First player this game is yellow. Begin!");
+        		agentPlay(true);
+        		Long endTime = System.currentTimeMillis();
+
+                moveTime = (int) ((endTime-startTime) / 1000);
+                if(winner == RED)
+                	System.out.println("The winner is: Red player");
+                else
+                	System.out.println("The winner is: Yellow player");
+                System.out.println("Game lasted: " + moveTime + " seconds.");
+                System.out.println("Total moves made: " + (redMoveCounter + yellowMoveCounter));
+                activeColour = Math.abs(activeColour-3);
+                System.out.println("-------------------------------------------------------");
+                end=false;
+                initialize();
+        	}
+        	System.out.println("Simulation over.");
+        }
+        
+        /**
+         * This method simulates 5 games in a row between
+         * MinMax Agent and MinMaxAb Agent.
+         */
+        public void minMaxVSMinMaxAB() {
+        	yellowPlayer = MINMAX;
+        	redPlayer = MINMAXAB;
+        	activeColour = YELLOW;
+        	System.out.println("Yellow Player is MinMax Agent.");
+        	System.out.println("Red Player is MinMaxAB Agent.");
+        	System.out.println("-------------------------------------------------------");
+        	for(int i = 0; i < 5; i++) {
+        		Long startTime = System.currentTimeMillis();
+        		RandomPlayer randomPlayer = new RandomPlayer();
+        		for (int j = 0; j < 4; j++) {
+        			putDisk(randomPlayer.nextMove(), true);
+        		}
+        		if(activeColour == RED)
+        			System.out.println("First player this game is red. Begin!");
+        		else
+        			System.out.println("First player this game is yellow. Begin!");
+        		agentPlay(true);
+        		Long endTime = System.currentTimeMillis();
+
+                moveTime = (int) ((endTime-startTime) / 1000);
+                if(winner == RED)
+                	System.out.println("The winner is: Red player");
+                else
+                	System.out.println("The winner is: Yellow player");
+                System.out.println("Game lasted: " + moveTime + " seconds.");
+                System.out.println("Total moves made: " + (redMoveCounter + yellowMoveCounter));
+                activeColour = Math.abs(activeColour-3);
+                System.out.println("-------------------------------------------------------");
+                end=false;
+                initialize();
+        	}
+        	System.out.println("Simulation over.");
         }
 } // class

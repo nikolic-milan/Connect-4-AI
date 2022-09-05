@@ -5,24 +5,27 @@ import java.lang.Math;
 public class MinMaxPlayer {
 	int agentColour; // maximizer is agent player
 	int minimizer; // minimizer is human player
+	int alpha = -123456789; // min value
+	int beta  = 123456789; // max value
 	
-	public static int WIN = 10000;
-	public static int LOSE = -10000;
+	public static int WIN = 100000;
+	public static int LOSE = -100000;
 	public static int DRAW = 0;
-	public static int THREECONNECTED = 300;
+	public static int THREECONNECTED = 800;
 	public static int TWOCONNECTED = 200;
-	public static int OPTIMALEVALUATIONSCORE = 400;
+	public static int OPTIMALEVALUATIONSCORE = 1200;
 	
 	
 	/**
 	 * This method calculates and chooses the next move for the MinMax agent
+	 * based on the utility score.
 	 * @param board Represents the current playing board
 	 * @param activePlayer Represents the current activePlayer
 	 * @return Returns the column which is the agent's next move
 	 */
 	public int nextMove(int[][] board, int activePlayer) {
 		agentColour = activePlayer;
-		
+
 		DecisionTree decisionTree = generateTree(board, activePlayer);
 		
 		calculateTreeUtil(decisionTree.root);
@@ -41,10 +44,18 @@ public class MinMaxPlayer {
 		return movePlayed;
 	}
 	
+	/**
+	 * This method calculates and chooses the next move for the MinMax agent based
+	 * on the evaluation scores.
+	 * @param board Represents the current playing board
+	 * @param activePlayer Represents the current activePlayer
+	 * @return Returns the column which is the agent's next move
+	 */
 	public int nextMoveEval(int[][] board, int activePlayer) {
 		
 		agentColour = activePlayer;
-		
+		alpha = -123456789; 
+		beta  = 123456789;
 		DecisionTree decisionTree = generateTree(board, activePlayer);
 		calculateTreeEval(decisionTree.root);
 		
@@ -58,11 +69,39 @@ public class MinMaxPlayer {
 		for (int i = 0; i < evaluationScores.length; i++) {
 			if(evaluationScores[i] == score) {
 				movePlayed = decisionTree.root.childNodes.get(i).movePlayed;
+				break;
 			}
 		}
 		return movePlayed;
 	}
+	/**
+	 * This method calculates and chooses the next move for the MinMax agent
+	 * base on the evaluation scores but using alpha-beta pruning.
+	 * @param board Represents the current playing board
+	 * @param activePlayer Represents the current activePlayer
+	 * @return Returns the column which is the agent's next move
+	 */
+	public int nextMoveAB(int[][] board, int activePlayer) {
+		agentColour = activePlayer;
 
+		DecisionTree decisionTree = generateTree(board, activePlayer);
+		calculateTreeEvalAB(decisionTree.root);
+		
+		int[] evaluationScores = new int[decisionTree.root.childNodes.size()];
+		for(int child = 0; child < decisionTree.root.childNodes.size(); child++) {
+			evaluationScores[child] = decisionTree.root.childNodes.get(child).evaluationScore;
+		}
+		int score = Helper.getMaxOrMin(evaluationScores, true);
+		// TODO: fix this to get next move, directly.
+		int movePlayed = 1;
+		for (int i = 0; i < evaluationScores.length; i++) {
+			if(evaluationScores[i] == score) {
+				movePlayed = decisionTree.root.childNodes.get(i).movePlayed;
+				break;
+			}
+		}
+		return movePlayed;
+	}
 	
 	/**
 	 * This method generate the decision tree by creating a root node and
@@ -75,7 +114,7 @@ public class MinMaxPlayer {
 	public DecisionTree generateTree(int[][] board, int activePlayer) {
 		int nodeLevel = 0;
 		DecisionTree decisionTree = new DecisionTree();
-		decisionTree.root = new Node(true, 0, 0, Math.abs((activePlayer-3)), board, 0, 0);
+		decisionTree.root = new Node(true, 0, 0, Math.abs((activePlayer-3)), board, 0, 1);
 		int[][] newBoard = board;
 		generateSubtree(newBoard, activePlayer, decisionTree.root, nodeLevel);
 
@@ -100,8 +139,8 @@ public class MinMaxPlayer {
 				newBoard = simulateMove(newBoard, activePlayer, column);
 				int winner = Helper.checkWin(newBoard);
 				int utilityScore = calculateUtility(winner, activePlayer);
-				int evaluation = evaluate(board, activePlayer);
-				curentNode.childNodes.add(new Node(false, nodeLevel, column+1, activePlayer, newBoard, utilityScore, evaluation));;
+				int evaluation = evaluate(newBoard, activePlayer);
+				curentNode.childNodes.add(new Node(false, nodeLevel, column+1, activePlayer, newBoard, utilityScore, evaluation));
 			}
 		}
 		// change player
@@ -163,6 +202,12 @@ public class MinMaxPlayer {
 		
 	}
 	
+	/**
+	 * This method evaluates the given board and calculates a score.
+	 * @param board Represent the board to be evaluated.
+	 * @param activePlayer Represents the current active player.
+	 * @return Returns the score calculate. Can be positive or negative!
+	 */
 	public int evaluate(int[][] board, int activePlayer) {
 		int score = 0;
 		int winner = Helper.checkWin(board);
@@ -282,6 +327,11 @@ public class MinMaxPlayer {
 		return node.utilityScore; // exit needed for java, not used
 	}
 	
+	/**
+	 * This method calculates the evaluation score for every node in the tree.
+	 * @param node Represents the starting node
+	 * @return Returns the utility score of the node
+	 */
 	public int calculateTreeEval(Node node) {
 		if (node.nodeLevel == 7 || node.childNodes.size() == 0) {
 			return node.evaluationScore;
@@ -289,12 +339,60 @@ public class MinMaxPlayer {
 		int[] childNodesScores = new int[node.childNodes.size()];
 		for (int n = 0; n < node.childNodes.size(); n++) {
 			childNodesScores[n] = calculateTreeEval(node.childNodes.get(n));
+			//if agentColour != currentPlayer
+				// if childNodesScore[n] < alpha
+					//
 		}
 		if(node.playerColour != agentColour)
+			// minValue = gemaxormin
+			// alpha = minValue
 			node.evaluationScore = Helper.getMaxOrMin(childNodesScores, true);
 		else
+			// mixValue = gemaxormin
+			// beta = mixValue
 			node.evaluationScore = Helper.getMaxOrMin(childNodesScores, false);
 		
 		return node.evaluationScore; // exit needed for java, not used
+	}
+	
+	/**
+	 * This method calculates the evaluation score for every node in the tree
+	 * with alpha-beta pruning.
+	 * @param node Represents the starting node
+	 * @return Returns the utility score of the node
+	 */
+	public int calculateTreeEvalAB(Node node) {
+		if (node.nodeLevel == 7 || node.childNodes.size() == 0) {
+			return node.evaluationScore;
+		}
+		int[] childNodesScores = new int[node.childNodes.size()];
+		for (int n = 0; n < node.childNodes.size(); n++) {
+			childNodesScores[n] = calculateTreeEval(node.childNodes.get(n));
+			if (node.playerColour != agentColour) {
+				if (Helper.isMax(childNodesScores, childNodesScores[n])) {
+					if(childNodesScores[n] >= beta)
+						break;
+					alpha = Helper.max(alpha, childNodesScores[n]);
+				}
+			} else {
+				if (Helper.isMin(childNodesScores, childNodesScores[n])) {
+					if(childNodesScores[n] <= alpha)
+						break;
+					beta = Helper.min(beta,  childNodesScores[n]);
+				}
+			}
+		}
+		
+		if(node.playerColour != agentColour)
+			// minValue = gemaxormin
+			// alpha = minValue
+			node.evaluationScore = Helper.getMaxOrMin(childNodesScores, true);
+		else
+			// mixValue = gemaxormin
+			// beta = mixValue
+			node.evaluationScore = Helper.getMaxOrMin(childNodesScores, false);
+		
+		return node.evaluationScore; // exit needed for java, not used
+		
 	}
 }
